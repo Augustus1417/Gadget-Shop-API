@@ -49,3 +49,15 @@ def delete_product(product_id: int, db: Session=Depends(get_db)):
     product_query.delete(synchronize_session=False)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+@router.patch('/update/{product_id}')
+def update_product(product_id: int,payload: schemas.NewProduct, db: Session=Depends(get_db)):
+    product_query = db.query(models.Products).filter(models.Products.product_id == product_id)
+    product = product_query.first()
+    if not product:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+    updated_prod = payload.model_dump(exclude_unset=True)
+    product_query.filter(models.Products.product_id).update(updated_prod, synchronize_session=False)
+    db.commit()
+    db.refresh(product)
+    return product
