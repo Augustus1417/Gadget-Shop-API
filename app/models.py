@@ -25,3 +25,12 @@ class Users(Base):
     name = Column(String(50), nullable=False)
     email = Column(String(60), nullable=False)
     hashed_password = Column(String(128), nullable=False)
+
+class Orders(Base):
+    __tablename__ = 'orders'
+
+    order_id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.user_id'))
+    product_id = Column(Integer, ForeignKey('products.product_id'))
+    quantity = Column(Integer, nullable=False)
+    total_price = Column(Float, nullable=False)
