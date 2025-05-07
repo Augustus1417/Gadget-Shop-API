@@ -1,11 +1,14 @@
-from sqlalchemy import Integer, String, Column, ForeignKey, Float, Text, Enum
+from sqlalchemy import Integer, String, Column, ForeignKey, Float, Text, Enum, DateTime
+from sqlalchemy.orm import relationship
 from .database import Base
+from datetime import datetime, timezone
 import enum
 
 class ProductCategory(enum.Enum):
     phone = "phone"
     laptop = "laptop"
     accessory = "accessory"
+
 
 class Products(Base):
     __tablename__ = 'products'
@@ -18,6 +21,9 @@ class Products(Base):
     stock = Column(Integer, nullable=False)
     imgURL = Column(Text, nullable=True)
 
+    order_items = relationship("Order_Items", back_populates="product")
+
+
 class Users(Base):
     __tablename__ = 'users'
 
@@ -26,11 +32,36 @@ class Users(Base):
     email = Column(String(60), nullable=False)
     hashed_password = Column(String(128), nullable=False)
 
+    orders = relationship("Orders", back_populates="user")
+
+class OrderStatus(enum.Enum):
+    pending = "pending"
+    shipped = "shipped"
+    delivered = "delivered"
+    cancelled= "cancelled"
+
 class Orders(Base):
     __tablename__ = 'orders'
 
     order_id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.user_id'))
-    product_id = Column(Integer, ForeignKey('products.product_id'))
-    quantity = Column(Integer, nullable=False)
     total_price = Column(Float, nullable=False)
+    status = Column(Enum(OrderStatus), default=OrderStatus.pending, nullable=False)
+    order_date = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    delivery_date = Column(DateTime, nullable=True)
+
+    user = relationship("Users", back_populates="orders")
+    order_items = relationship("Order_Items", back_populates="order")
+
+
+class Order_Items(Base):
+    __tablename__ = 'order_items'
+
+    order_item_id = Column(Integer, primary_key=True)
+    order_id = Column(Integer, ForeignKey('orders.order_id'))
+    product_id = Column(Integer, ForeignKey('products.product_id')) 
+    quantity = Column(Integer, nullable=False)
+    order_price = Column(Float, nullable=False)
+
+    order = relationship("Orders", back_populates="order_items")
+    product = relationship("Products", back_populates="order_items")
