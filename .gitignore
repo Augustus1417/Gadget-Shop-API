@@ -2,3 +2,4 @@
 .env
 __pycache__/
 run_server.sh
+dev_start.sh
