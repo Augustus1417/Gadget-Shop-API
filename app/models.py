@@ -31,6 +31,7 @@ class Users(Base):
     name = Column(String(50), nullable=False)
     email = Column(String(60), nullable=False)
     hashed_password = Column(String(128), nullable=False)
+    role = Column(String(5), default="user")
 
     orders = relationship("Orders", back_populates="user")
 
