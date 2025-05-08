@@ -2,6 +2,7 @@ from pydantic_settings import BaseSettings
 from pathlib import Path
 
 # get the .env file path from outside the app dir
+# this seems to not work well on windows machines
 env_path = Path(__file__).resolve().parent.parent / '.env' 
 
 class Settings(BaseSettings):
