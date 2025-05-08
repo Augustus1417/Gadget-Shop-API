@@ -22,7 +22,6 @@ def get_order_by_id(order_id: int, db: Session=Depends(get_db)):
 @order_router.post('/', response_model=schemas.OrderBaseSchema, status_code=status.HTTP_201_CREATED)
 def create_order(payload: schemas.NewOrder, db: Session = Depends(get_db), user=Depends(get_current_user)):
     db_user = db.query(models.Users).filter(models.Users.email == user.get('sub')).first()
-
     if not db_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
@@ -32,7 +31,6 @@ def create_order(payload: schemas.NewOrder, db: Session = Depends(get_db), user=
 
     for item in order_items_data:
         product = db.query(models.Products).filter(models.Products.product_id == item.product_id).first()
-        
         if not product:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Product {item.product_id} not found.")
         
@@ -66,3 +64,25 @@ def create_order(payload: schemas.NewOrder, db: Session = Depends(get_db), user=
 
     db.commit()
     return new_order
+
+@order_router.patch('/cancel/{order_id}', status_code=status.HTTP_200_OK)
+def cancel_order(order_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    order = db.query(models.Orders).filter(models.Orders.order_id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+
+    db_user = db.query(models.Users).filter(models.Users.email == user.get('sub')).first()
+    if order.user_id != db_user.user_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You are unauthorized to cancel this")
+
+    if order.status == "cancelled":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Order is already cancelled")
+
+    for item in order.order_items:
+        product = db.query(models.Products).filter(models.Products.product_id == item.product_id).first()
+        if product:
+            product.stock += item.quantity
+
+    order.status = "cancelled"
+    db.commit()
+    return {"message": f"Order {order_id} has been cancelled."}
