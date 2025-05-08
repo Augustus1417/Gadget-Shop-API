@@ -1,1 +1,1 @@
-# Gadget Shop API with MySQL
+# Gadget Shop API with FastAPI + MySQL
