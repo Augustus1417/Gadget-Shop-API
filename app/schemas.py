@@ -1,4 +1,5 @@
 from pydantic import BaseModel, EmailStr
+from datetime import datetime
 
 class ProductBaseSchema(BaseModel):
     product_id: int
@@ -25,14 +26,31 @@ class NewUser(BaseModel):
     email: EmailStr
     password: str
 
-class UserLogin(BaseModel):
-    email: EmailStr
-    password: str
-
 class UserRead(BaseModel):
     user_id: int
     name: str
     email: EmailStr
 
     class config:
+        from_attributes = True
+    
+class OrderBaseSchema(BaseModel):
+    order_id: int
+    user_id: int
+    total_price: float
+    status: str
+    order_date: datetime
+    delivery_date: datetime | None = None
+
+    class Config:
+        from_attributes = True
+
+class OrderItemBaseSchema(BaseModel):
+    product_id: int
+    quantity: int
+
+class NewOrder(BaseModel):
+    order_items: list[OrderItemBaseSchema]
+
+    class Config:
         from_attributes = True

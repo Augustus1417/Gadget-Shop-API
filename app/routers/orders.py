@@ -1,0 +1,68 @@
+from .. import schemas, models
+from sqlalchemy.orm import Session
+from fastapi import Depends, HTTPException, status, APIRouter, Response
+from ..database import get_db
+from .auth import get_current_user
+from datetime import datetime, timezone
+
+order_router = APIRouter()
+
+@order_router.get('/', response_model=list[schemas.OrderBaseSchema])
+def get_orders(db: Session=Depends(get_db)):
+    orders = db.query(models.Orders).all()
+    return orders
+
+@order_router.get('/get/{order_id}', response_model=schemas.OrderBaseSchema)
+def get_order_by_id(order_id: int, db: Session=Depends(get_db)):
+    order = db.query(models.Orders).filter(models.Orders.order_id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+    return order
+
+@order_router.post('/', response_model=schemas.OrderBaseSchema, status_code=status.HTTP_201_CREATED)
+def create_order(payload: schemas.NewOrder, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    db_user = db.query(models.Users).filter(models.Users.email == user.get('sub')).first()
+
+    if not db_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    order_items_data = payload.order_items
+    total_price = 0.0
+    order_items_to_create = []
+
+    for item in order_items_data:
+        product = db.query(models.Products).filter(models.Products.product_id == item.product_id).first()
+        
+        if not product:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Product {item.product_id} not found.")
+        
+        if product.stock < item.quantity:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Insufficient stock for product '{product.name}'.")
+
+        line_total = product.price * item.quantity
+        total_price += line_total
+        product.stock -= item.quantity
+
+        order_items_to_create.append(
+            models.Order_Items(
+                product_id=item.product_id,
+                quantity=item.quantity,
+                order_price=product.price 
+            )
+        )
+
+    new_order = models.Orders(
+        user_id=db_user.user_id,
+        total_price=total_price,
+        order_date = datetime.now(timezone.utc)
+    )
+    db.add(new_order)
+    db.commit()
+    db.refresh(new_order)
+
+    for order_item in order_items_to_create:
+        order_item.order_id = new_order.order_id
+        db.add(order_item)
+
+    db.commit()
+    return new_order
