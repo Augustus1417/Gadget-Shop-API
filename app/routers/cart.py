@@ -1,0 +1,37 @@
+from .. import schemas, models
+from sqlalchemy.orm import Session
+from fastapi import Depends, HTTPException, status, APIRouter, Response
+from ..database import get_db
+from .auth import get_current_user
+
+cart_router = APIRouter()
+
+@cart_router.post("/")
+def add_to_cart(payload: schemas.CartBaseSchema,user = Depends(get_current_user), db: Session = Depends(get_db)):
+    db_user = db.query(models.Users).filter(models.Users.email == user.get('sub')).first()
+    if not db_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    cart_item = db.query(models.Cart).filter_by(user_id=db_user.user_id, product_id=payload.product_id).first()
+    if cart_item:
+        cart_item.quantity += payload.quantity
+    else:
+        cart_item = models.Cart(
+            user_id=db_user.user_id,
+            product_id=payload.product_id,
+            quantity=payload.quantity
+        )
+
+    db.add(cart_item)
+    db.commit()
+    return {"detail": "Items added succesfully"}
+
+@cart_router.get('/user')
+def get_user_cart(user = Depends(get_current_user), db: Session = Depends(get_db)):
+    db_user = db.query(models.Users).filter(models.Users.email == user.get('sub')).first()
+    if not db_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    cart = db.query(models.Cart).filter(models.Cart.user_id == db_user.user_id).all()
+    return cart
+

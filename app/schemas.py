@@ -54,3 +54,7 @@ class NewOrder(BaseModel):
 
     class Config:
         from_attributes = True
+
+class CartBaseSchema(BaseModel):
+    product_id: int
+    quantity:int

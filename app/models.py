@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, String, Column, ForeignKey, Float, Text, Enum, DateTime
+from sqlalchemy import Integer, String, Column, ForeignKey, Float, Text, Enum, DateTime, UniqueConstraint
 from sqlalchemy.orm import relationship
 from .database import Base
 from datetime import datetime, timezone
@@ -22,6 +22,7 @@ class Products(Base):
     imgURL = Column(Text, nullable=True)
 
     order_items = relationship("Order_Items", back_populates="product")
+    cart = relationship("Cart", back_populates="product")
 
 
 class Users(Base):
@@ -34,6 +35,7 @@ class Users(Base):
     role = Column(String(5), default="user")
 
     orders = relationship("Orders", back_populates="user")
+    cart = relationship("Cart", back_populates="user")
 
 class OrderStatus(enum.Enum):
     pending = "pending"
@@ -54,7 +56,6 @@ class Orders(Base):
     user = relationship("Users", back_populates="orders")
     order_items = relationship("Order_Items", back_populates="order")
 
-
 class Order_Items(Base):
     __tablename__ = 'order_items'
 
@@ -66,3 +67,18 @@ class Order_Items(Base):
 
     order = relationship("Orders", back_populates="order_items")
     product = relationship("Products", back_populates="order_items")
+
+class Cart(Base):
+    __tablename__ = 'cart'
+
+    cart_id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.user_id', ondelete='CASCADE'))
+    product_id = Column(Integer, ForeignKey('products.product_id', ondelete='CASCADE'))
+    quantity = Column(Integer, nullable=False)
+
+    product = relationship("Products", back_populates="cart")
+    user = relationship("Users", back_populates="cart")
+
+    __table_args__ = (
+        UniqueConstraint('user_id', 'product_id', name='unique_cart_item'),
+    )
