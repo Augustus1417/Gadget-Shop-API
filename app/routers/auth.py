@@ -1,7 +1,7 @@
 from .. import schemas, models
 from ..config import settings
 from sqlalchemy.orm import Session
-from fastapi import Depends, HTTPException, status, APIRouter, Response
+from fastapi import Depends, HTTPException, status, APIRouter, Response, Request
 from ..database import get_db
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm 
 from passlib.context import CryptContext
@@ -51,6 +51,23 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         if email is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
         return payload
-
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
+
+@auth_router.get('/user', response_model=schemas.UserRead)
+def get_user_info(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        
+        user = db.query(models.Users).filter(models.Users.email == email).first()
+        return user
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
+
+@auth_router.get('/verify_token')
+async def verify_token(token: str = Depends(oauth2_scheme)):
+    payload = get_current_user(token=token)
+    return {"email":payload.get('sub')}
