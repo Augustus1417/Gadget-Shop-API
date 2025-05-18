@@ -1,5 +1,5 @@
 from .. import schemas, models
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from fastapi import Depends, HTTPException, status, APIRouter, Response
 from ..database import get_db
 from .auth import get_current_user
@@ -32,6 +32,17 @@ def get_user_cart(user = Depends(get_current_user), db: Session = Depends(get_db
     if not db_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     
-    cart = db.query(models.Cart).filter(models.Cart.user_id == db_user.user_id).all()
-    return cart
+    cart = db.query(models.Cart).options(joinedload(models.Cart.product)).filter(models.Cart.user_id == db_user.user_id).all()
+
+    cart_data = []
+    for item in cart:
+        cart_data.append({
+            "cart_id": item.cart_id,
+            "product_id": item.product_id,
+            "product_name": item.product.name,
+            "product_price": item.product.price,
+            "quantity": item.quantity,
+        })
+
+    return cart_data
 

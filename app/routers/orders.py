@@ -20,16 +20,19 @@ def get_order_by_id(order_id: int, db: Session=Depends(get_db)):
     return order
 
 @order_router.post('/', response_model=schemas.OrderBaseSchema, status_code=status.HTTP_201_CREATED)
-def create_order(payload: schemas.NewOrder, db: Session = Depends(get_db), user=Depends(get_current_user)):
+def create_order(db: Session = Depends(get_db), user=Depends(get_current_user)):
     db_user = db.query(models.Users).filter(models.Users.email == user.get('sub')).first()
     if not db_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-    order_items_data = payload.order_items
+    user_cart = db.query(models.Cart).filter(models.Cart.user_id == db_user.user_id).all()
+    if not user_cart:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User has no items in the cart")
+
     total_price = 0.0
     order_items_to_create = []
 
-    for item in order_items_data:
+    for item in user_cart:
         product = db.query(models.Products).filter(models.Products.product_id == item.product_id).first()
         if not product:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Product {item.product_id} not found.")
@@ -48,6 +51,7 @@ def create_order(payload: schemas.NewOrder, db: Session = Depends(get_db), user=
                 order_price=product.price 
             )
         )
+        db.delete(item)
 
     new_order = models.Orders(
         user_id=db_user.user_id,
