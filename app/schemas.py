@@ -41,6 +41,7 @@ class OrderBaseSchema(BaseModel):
     status: str
     order_date: datetime
     delivery_date: datetime | None = None
+    address: str | None = None
 
     class Config:
         from_attributes = True

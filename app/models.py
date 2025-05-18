@@ -50,6 +50,7 @@ class Orders(Base):
     user_id = Column(Integer, ForeignKey('users.user_id'))
     total_price = Column(Float, nullable=False)
     status = Column(Enum(OrderStatus), default=OrderStatus.pending, nullable=False)
+    address = Column(String(80), nullable=True)
     order_date = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     delivery_date = Column(DateTime, nullable=True)
 
