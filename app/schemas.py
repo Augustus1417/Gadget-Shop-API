@@ -50,12 +50,6 @@ class OrderItemBaseSchema(BaseModel):
     product_id: int
     quantity: int
 
-class NewOrder(BaseModel):
-    order_items: list[OrderItemBaseSchema]
-
-    class Config:
-        from_attributes = True
-
 class CartBaseSchema(BaseModel):
     product_id: int
     quantity:int
