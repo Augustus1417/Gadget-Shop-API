@@ -9,7 +9,6 @@ class ProductCategory(enum.Enum):
     laptop = "laptop"
     accessory = "accessory"
 
-
 class Products(Base):
     __tablename__ = 'products'
 
@@ -36,6 +35,7 @@ class Users(Base):
 
     orders = relationship("Orders", back_populates="user")
     cart = relationship("Cart", back_populates="user")
+    addresses = relationship("Addresses", back_populates="user")
 
 class OrderStatus(enum.Enum):
     pending = "pending"
@@ -50,7 +50,7 @@ class Orders(Base):
     user_id = Column(Integer, ForeignKey('users.user_id'))
     total_price = Column(Float, nullable=False)
     status = Column(Enum(OrderStatus), default=OrderStatus.pending, nullable=False)
-    address = Column(String(80), nullable=True)
+    address = Column(Text, nullable=True)
     order_date = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     delivery_date = Column(DateTime, nullable=True)
 
@@ -83,3 +83,12 @@ class Cart(Base):
     __table_args__ = (
         UniqueConstraint('user_id', 'product_id', name='unique_cart_item'),
     )
+
+class Addresses(Base):
+    __tablename__ = "addresses"
+
+    address_id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.user_id', ondelete='CASCADE'))
+    address = Column(Text, nullable=False)
+
+    user = relationship("Users", back_populates="addresses")
