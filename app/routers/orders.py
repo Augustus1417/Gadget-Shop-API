@@ -7,10 +7,13 @@ from datetime import datetime, timezone
 
 order_router = APIRouter()
 
-@order_router.get('/', response_model=list[schemas.OrderBaseSchema])
+@order_router.get('/', response_model=schemas.DetailedUserOrders)
 def get_orders(db: Session=Depends(get_db)):
     orders = db.query(models.Orders).all()
-    return orders
+    if not orders:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User has no orders")
+
+    return {"orders": orders}
 
 @order_router.get('/get/{order_id}', response_model=schemas.OrderBaseSchema)
 def get_order_by_id(order_id: int, db: Session=Depends(get_db)):
