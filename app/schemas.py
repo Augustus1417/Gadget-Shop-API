@@ -104,6 +104,7 @@ class OrderItemDetails(BaseModel):
 class DetailedOrder(BaseModel):
     order_id: int
     user_id: int
+    user_name: str | None = None  
     total_price: float
     status: str
     order_date: datetime
@@ -116,3 +117,15 @@ class DetailedOrder(BaseModel):
 
 class DetailedUserOrders(BaseModel):
     orders: list[DetailedOrder]
+
+class UsersInfo(BaseModel):
+    user_id: int
+    name: str
+    email: str
+    role: str
+
+    class Config:
+        from_attributes = True
+
+class UsersList(BaseModel):
+    users: list[UsersInfo]
