@@ -1,5 +1,5 @@
 from .. import schemas, models
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from fastapi import Depends, HTTPException, status, APIRouter, Response
 from ..database import get_db
 from .auth import get_current_user
@@ -19,8 +19,21 @@ def get_order_by_id(order_id: int, db: Session=Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
     return order
 
+@order_router.get('/user/orders', response_model=schemas.DetailedUserOrders)
+def get_user_orders(user=Depends(get_current_user), db: Session = Depends(get_db)):
+    db_user = db.query(models.Users).filter(models.Users.email == user.get('sub')).first()
+    if not db_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    orders = db.query(models.Orders).filter(models.Orders.user_id == db_user.user_id).all()
+    if not orders:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User has no orders")
+
+    return {"orders": orders}
+
+
 @order_router.post('/', response_model=schemas.OrderBaseSchema, status_code=status.HTTP_201_CREATED)
-def create_order(db: Session = Depends(get_db), user=Depends(get_current_user)):
+def create_order(payload: schemas.NewOrder, db: Session = Depends(get_db), user=Depends(get_current_user)):
     db_user = db.query(models.Users).filter(models.Users.email == user.get('sub')).first()
     if not db_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
@@ -56,7 +69,8 @@ def create_order(db: Session = Depends(get_db), user=Depends(get_current_user)):
     new_order = models.Orders(
         user_id=db_user.user_id,
         total_price=total_price,
-        order_date = datetime.now(timezone.utc)
+        order_date = datetime.now(timezone.utc),
+        address = payload.address
     )
     db.add(new_order)
     db.commit()
