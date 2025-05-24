@@ -61,8 +61,8 @@ class Order_Items(Base):
     __tablename__ = 'order_items'
 
     order_item_id = Column(Integer, primary_key=True)
-    order_id = Column(Integer, ForeignKey('orders.order_id'))
-    product_id = Column(Integer, ForeignKey('products.product_id')) 
+    order_id = Column(Integer, ForeignKey('orders.order_id'), ondelete='CASCADE')
+    product_id = Column(Integer, ForeignKey('products.product_id', ondelete='CASCADE')) 
     quantity = Column(Integer, nullable=False)
     order_price = Column(Float, nullable=False)
 
