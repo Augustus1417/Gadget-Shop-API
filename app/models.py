@@ -23,7 +23,6 @@ class Products(Base):
     order_items = relationship("Order_Items", back_populates="product")
     cart = relationship("Cart", back_populates="product")
 
-
 class Users(Base):
     __tablename__ = 'users'
 
